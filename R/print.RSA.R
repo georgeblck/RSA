@@ -1,13 +1,29 @@
 #' @export
 #' @method print RSA
-print.RSA <- function(x, ..., model="full", digits=3) {
+print.RSA <- function(x, ..., model=NULL, digits=3) {
 	summary.RSA(object=x, ..., model=model, digits=digits)
 }
 
 #' @export
 #' @method summary RSA
-summary.RSA <- function(object, ..., model="full", digits=3) {
+summary.RSA <- function(object, ..., model=NULL, digits=3) {
 	x <- object
+	
+	# No model provided? Default to a sensible model
+	if (is.null(model)) {
+		
+		# get all model names that have been computed
+		available.models <- names(x$models)[!sapply(x$models, is.null)]
+		
+		if ("cubic" %in% available.models) {
+			model <- "cubic"
+		} else if ("full" %in% available.models) {
+			model <- "full"
+		} else {
+			model <- available.models[1]
+			message(paste0("No model has been specified - showing model <", model, ">. The RSA object contains the following models: ", paste(available.models, collapse=", ")))
+		}
+	}
 	
 	# is the model a cubic model?
 	is.cubicmodel <- model %in% c("cubic","CA","RRCA","CL","RRCL")
@@ -39,7 +55,7 @@ summary.RSA <- function(object, ..., model="full", digits=3) {
 	print(round(prop.table(table(Congruence)), 3)*100)
 	
 	
-	cat("\nIs the full polynomial model significant?\n----------------------------\n")
+	cat(paste0("\nIs the full polynomial model of ", ifelse(is.cubic, "third degree", "second degree")," significant?\n----------------------------\n"))
 	# --> is R2 significant?
 	r2.model <- LM$r.squared
 	

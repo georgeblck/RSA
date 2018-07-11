@@ -2,6 +2,25 @@
 \title{News for package 'RSA'}
 \encoding{UTF-8}
 
+
+\section{Version 0.9.13}{
+
+
+\subsection{New features}{
+	\itemize{
+		\item TODO: Outliers.
+	}
+}
+
+\subsection{Bug fixes/Glitches}{
+	\itemize{		
+		\item The \code{print} function for RSA objects now defaults to a sensible model if no specific model is provided.
+	}
+}
+
+}
+
+
 \section{Version 0.9.12}{
 
 
