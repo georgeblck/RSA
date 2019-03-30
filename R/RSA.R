@@ -4,7 +4,7 @@
 #' Performs several RSA model tests on a data set with two predictors
 #'
 #' @details
-#' Even if the main variables of the model are normally distirbuted, their squared terms and interaction terms are necessarily non-normal. By default, the RSA function uses a scaled test statistic (\code{test="Satorra-Bentler"}) and robust standard errors (\code{se="robust"}), which are robust against violations of the normality assumption. 
+#' Even if the main variables of the model are normally distirbuted, their squared terms and interaction terms are necessarily non-normal. By default, the RSA function uses a scaled test statistic (\code{test="Satorra-Bentler"}) and robust standard errors (\code{se="robust"}), which are robust against violations of the normality assumption.
 #'
 #' \emph{Why does my standard polynomial regression give different p-values and SEs than the RSA package? Shouldn't they be the same?} This is due to the robust standard errors employed in the RSA package. If you set \code{estimator="ML"} and \code{se="standard"}, you get p-values that are very close to the standard approach. (They might still not be identical because the standard regression approach usually uses an OLS estimator and RSA uses an ML estimator).
 #'
@@ -70,40 +70,40 @@
 #' # Get boostrapped CIs with 10 bootstrap samples (usually this should be set to 5000 or higher),
 #' # only from the SSQD model
 #' c1 <- confint(r.m, model="SSQD", method="boot", R=10)
-#' 
+#'
 #' # Plot the final model
-#' plot(r.m, model="RR", xlab="Explicit power motive", 
+#' plot(r.m, model="RR", xlab="Explicit power motive",
 #' 		ylab="Implicit power motive", zlab="Affective valence")
 #' }
 
-RSA <- function(formula, data=NULL, center=FALSE, scale=FALSE, na.rm=FALSE, 
-	out.rm=TRUE, breakline=FALSE, models="default", cubic=FALSE, 
+RSA <- function(formula, data=NULL, center=FALSE, scale=FALSE, na.rm=FALSE,
+	out.rm=TRUE, breakline=FALSE, models="default", cubic=FALSE,
 	verbose=TRUE, add = "", estimator="MLR",
 	se = "robust", missing=NA, ..., control.variables=c()) {
 
 
-	if (length(control.variables) > 0) stop("Control.variables feature not implemented yet!")
+	#if (length(control.variables) > 0) stop("Control.variables feature not implemented yet!")
 
 	validmodels <- c("absdiff", "absunc", "diff", "mean", "additive", "IA", "SQD", "SRRR", "SRR", "RR", "SSQD", "SRSQD", "full", "null", "onlyx", "onlyy", "onlyx2", "onlyy2", "weak", "strong", "cubic", "CA", "CL", "RRCA", "RRCL")
-	
+
 	if (length(models)==1 & models[1]=="all") {models <- validmodels}
 	#if (length(models)==1 & models[1]=="default") {models <- c("diff", "mean", "additive", "IA", "SQD", "SRRR", "SRR", "RR", "SSQD", "SRSQD", "full", "null", "onlyx2", "onlyy2", "onlyx", "onlyy", "weak", "strong")}
-	if (length(models)==1 & models[1]=="default" & cubic==FALSE) {models <- c("additive", "IA", "SQD", "SRRR", "SRR", "RR", "SSQD", "SRSQD", "full", "null", "onlyx2", "onlyy2", "onlyx", "onlyy")} 
+	if (length(models)==1 & models[1]=="default" & cubic==FALSE) {models <- c("additive", "IA", "SQD", "SRRR", "SRR", "RR", "SSQD", "SRSQD", "full", "null", "onlyx2", "onlyy2", "onlyx", "onlyy")}
 	if (length(models)==1 & models[1]=="default" & cubic==TRUE) {models <- c("additive", "IA", "SQD", "SRRR", "SRR", "RR", "SSQD", "SRSQD", "full", "null", "onlyx2", "onlyy2", "onlyx", "onlyy", "cubic", "CA", "CL", "RRCA", "RRCL")}
 	if (any(!models %in% validmodels))
 		stop("Unknown model name provided in parameter 'models'.")
-	
+
 	# set cubic flag if any third-order model is contained in the models vector
 	cubicmodels <- c("cubic", "CA", "CL", "RRCA", "RRCL")
 	is.cubic <- any(models %in% cubicmodels)
-	
+
 	# set all result objects to NULL as default
 	s.NULL <- s.full <- s.IA <- s.diff <- s.mean <- s.absdiff <- s.additive <- s.SQD <- s.SSQD <- s.SRSQD <- s.absunc <- s.cubic <- s.RR <- s.SRR <- s.SRRR <- s.onlyx <- s.onlyy <- s.onlyx2 <- s.onlyy2 <- s.weak <- s.strong <- s.CA <- s.CL <- s.RRCA <- s.RRCL <- NULL
 	SRSQD.rot <- ""
 	SRRR.rot <- ""
-	
+
 	add <- paste0("\n# User defined syntax:\n", add)
-	
+
 	DV <- all.vars(formula)[1]
 	IV1 <- all.vars(formula)[2]
 	IV2 <- all.vars(formula)[3]
@@ -112,21 +112,21 @@ RSA <- function(formula, data=NULL, center=FALSE, scale=FALSE, na.rm=FALSE,
 	df <- data[, c(DV, IV1, IV2, control.variables)]	# reduce data frame to actually used variables
 	df[, IV1] <- scale(df[, IV1], center=center, scale=scale)
 	df[, IV2] <- scale(df[, IV2], center=center, scale=scale)
-		
+
 	df <- add.variables(formula, data.frame(data.matrix(df)))
-	
+
 	# give warnings if the zero point is outside of data range
-	if (0 < min(df[, IV1], na.rm=TRUE) | 0 > max(df[, IV1], na.rm=TRUE)) 
+	if (0 < min(df[, IV1], na.rm=TRUE) | 0 > max(df[, IV1], na.rm=TRUE))
 		warning(paste("The numerical zero point is outside of the range of variable", IV1, ". Please consider re-centering the variable."))
-	if (0 < min(df[, IV2], na.rm=TRUE) | 0 > max(df[, IV2], na.rm=TRUE)) 
+	if (0 < min(df[, IV2], na.rm=TRUE) | 0 > max(df[, IV2], na.rm=TRUE))
 		warning(paste("The numerical zero point is outside of the range of variable", IV2, ". Please consider re-centering the variable."))
-		
+
 	# give warning if one variable has a much higher range than the other variable
 	if ((max(df[, IV1], na.rm=TRUE) - min(df[, IV1], na.rm=TRUE)) / (max(df[, IV2], na.rm=TRUE) - min(df[, IV2], na.rm=TRUE)) > 2)
 		warning("Predictor variables have a very different range (by factor 2 or larger)- please check scaling of variables.")
-	
-	
-	
+
+
+
 	# set defaults for missing option
 	if (is.na(missing)) {
 		if (any(is.na(df))) {
@@ -136,8 +136,8 @@ RSA <- function(formula, data=NULL, center=FALSE, scale=FALSE, na.rm=FALSE,
 			missing <- "listwise"
 		}
 	}
-	
-	
+
+
 	# temporary workaround to avoid listwise deletion when the data contains missings
 	#
 	# lavaan versions < 0.6.3 will apply listwise deletion (because fixed.x = TRUE in the sem() models) and have no workaround implemented, so they should not be applied.
@@ -145,8 +145,8 @@ RSA <- function(formula, data=NULL, center=FALSE, scale=FALSE, na.rm=FALSE,
 	#
 	# lavaan versions >= 0.6.3 have the fiml.x workaround
 	if (any(is.na(df)) & missing=="fiml" & packageVersion("lavaan") >= "0.6.3") {missing <- "fiml.x"}
-	
-	
+
+
 	IV12 <- paste0(IV1, "2")
 	IV22 <- paste0(IV2, "2")
 	IV13 <- paste0(IV1, "3")
@@ -165,10 +165,10 @@ RSA <- function(formula, data=NULL, center=FALSE, scale=FALSE, na.rm=FALSE,
 	if (is.cubic) addcubic <- paste0(" + ", paste(IV13, IV_IA2, IV_IA3, IV23, sep=" + "))
 	f <- paste0(paste0(DV, " ~ ", paste(IV1, IV2, IV12, IV_IA, IV22, sep=" + ")), addcubic, CV)
 	lm.full <- lm(f, df, na.action=na.exclude)
-	
+
 	# ---------------------------------------------------------------------
-	#  Mark outliers and influential cases 
-	
+	#  Mark outliers and influential cases
+
 	# define the defaults
 	if (is.null(out.rm) || (typeof(out.rm) == "logical" && out.rm == TRUE)) {
 		out.rm <- "bj1980"
@@ -198,32 +198,32 @@ RSA <- function(formula, data=NULL, center=FALSE, scale=FALSE, na.rm=FALSE,
 # 			warning(paste("Removed", n.out, "multivariate outlier(s) using a robust procedure (Wilcox, 2012). Outliers are in row(s):", paste(which(df$out == TRUE) , collapse=", ")))
 # 		}
 	}
-	
+
 	# Rows with outliers have a NA in $out. Should they be kept or removed? I will keep them, otherwise it would not make sense to have fiml estimation, as all NAs are automatically processed as outliers.
 	# FIXME: is this a good default choice?
 	df$out[is.na(df$out)] <- FALSE
 
 
 	## Test all models of second degree
-	
+
 # suppress some types of lavaan warning, which cannot be ruled out analytically ...
-withCallingHandlers({	
-	
+withCallingHandlers({
+
 	# Standard full polynomial of second degree
 	poly <- paste0(DV, " ~ b1*", IV1, " + b2*", IV2, " + b3*", IV12, " + b4*", IV_IA, " + b5*", IV22, CV)
-	
+
 	# Standard full polynomial of third degree
-	polycubic <- paste0(poly, " + b6*", IV13, " + b7*", IV_IA2, " + b8*", IV_IA3, " + b9*", IV23) 
-	
-	
+	polycubic <- paste0(poly, " + b6*", IV13, " + b7*", IV_IA2, " + b8*", IV_IA3, " + b9*", IV23)
+
+
 	if ("null" %in% models) {
-		m.null <- ifelse(is.cubic, 
+		m.null <- ifelse(is.cubic,
 		                 paste0(DV, "~ 1 + 0*", IV1, " + 0*", IV2, " + 0*", IV12, " + 0*", IV_IA, " + 0*", IV22, " + 0*", IV13, " + 0*", IV_IA2, " + 0*", IV_IA3, " + 0*", IV23, CV),
 		                 paste0(DV, "~ 1 + 0*", IV1, " + 0*", IV2, " + 0*", IV12, " + 0*", IV_IA, " + 0*", IV22, CV))
 	  s.NULL <- sem(m.null, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
-	
+
+
 	if ("additive" %in% models) {
 	  if (verbose==TRUE) print("Computing additive model (additive) ...")
 	  m.additive <-  paste(ifelse(is.cubic, polycubic, poly),
@@ -239,7 +239,7 @@ withCallingHandlers({
 	                       add, sep="\n")
 	  s.additive <- sem(m.additive, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
+
 	if ("onlyx2" %in% models) {
 		if (verbose==TRUE) print("Computing x + x^2 model (onlyx2) ...")
 		m.onlyx2 <-  paste(ifelse(is.cubic,polycubic,poly),
@@ -255,7 +255,7 @@ withCallingHandlers({
 		add, sep="\n")
 		s.onlyx2 <- sem(m.onlyx2, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
+
 	if ("onlyy2" %in% models) {
 		if (verbose==TRUE) print("Computing y + y^2 model (onlyy2) ...")
 		m.onlyy2 <-  paste(ifelse(is.cubic,polycubic,poly),
@@ -288,7 +288,7 @@ withCallingHandlers({
 		add, sep="\n")
 		s.onlyx <- sem(m.onlyx, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
+
 	if ("onlyy" %in% models) {
 		if (verbose==TRUE) print("Computing y model (onlyy) ...")
 		m.onlyy <-  paste(ifelse(is.cubic,polycubic,poly),
@@ -305,7 +305,7 @@ withCallingHandlers({
 		add, sep="\n")
 		s.onlyy <- sem(m.onlyy, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
+
 
 	if ("diff" %in% models) {
 		if (verbose==TRUE) print("Computing difference model (diff) ...")
@@ -323,7 +323,7 @@ withCallingHandlers({
 			s.diff <- sem(m.diff, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 		#summary(s.diff, fit.measures=TRUE)
 	}
-	
+
 	if ("mean" %in% models) {
 		if (verbose==TRUE) print("Computing mean model (mean) ...")
 		m.mean <- paste(ifelse(is.cubic,polycubic,poly),
@@ -355,19 +355,19 @@ withCallingHandlers({
 			"X0 := (b2*b4 - 2*b1*b5) / (4*b3*b5 - b4^2)",
 			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
 			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
-			"p10 := Y0 - p11*X0",			
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4",
+			"p10 := Y0 - p11*X0",
 			"p20 := Y0 - p21*X0",
 			"PA1.curv := b3 + b4*p11 + b5*(p11^2)",
 			"PA2.curv := b3 + b4*p21 + b5*(p21^2)",
 			# eigenvalues
-			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 		add, sep="\n")
-		
+
 			s.IA <- sem(m.IA, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
+
 	if ("SQD" %in% models) {
 		if (verbose==TRUE) print("Computing squared difference model (SQD) ...")
 		m.SQD <- paste(ifelse(is.cubic,polycubic,poly),
@@ -382,16 +382,16 @@ withCallingHandlers({
 			"a4 := b3-b4+b5",
 			"a5 := b3-b5",
 			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4",
 			"PA1.curv := b3 + b4*p11 + b5*(p11^2)",
 			"PA2.curv := b3 + b4*p21 + b5*(p21^2)",
 			# eigenvalues
-			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
-			add, sep="\n")			
+			add, sep="\n")
 			s.SQD <- sem(m.SQD, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
+
 	if ("SSQD" %in% models) {
 		if (verbose==TRUE) print("Computing shifted squared difference model (SSQD) ...")
 		m.SSQD <- paste(ifelse(is.cubic,polycubic,poly),
@@ -405,17 +405,17 @@ withCallingHandlers({
 			"a4 := b3-b4+b5",
 			"a5 := b3-b5",
 			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4",
 			"PA1.curv := b3 + b4*p11 + b5*(p11^2)",
 			"PA2.curv := b3 + b4*p21 + b5*(p21^2)",
 			"C := b1 / (2*b3)",
 			# eigenvalues
-			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
-			add, sep="\n")			
+			add, sep="\n")
 			s.SSQD <- sem(m.SSQD, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
+
 	if (any(models %in% c("RR"))) {
 		if (verbose==TRUE) print("Computing rising ridge model (RR) ...")
 		m.RR <- paste(ifelse(is.cubic,polycubic,poly),
@@ -430,17 +430,17 @@ withCallingHandlers({
 			"a5 := b3-b5",
 			"meaneffect := b1+b2",
 			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4",
 			"PA1.curv := b3 + b4*p11 + b5*(p11^2)",
 			"PA2.curv := b3 + b4*p21 + b5*(p21^2)",
 			# eigenvalues
-			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
-			
+
 			add, sep="\n")
 			s.RR <- sem(m.RR, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
+
 	if (any(models %in% c("SRR"))) {
 		if (verbose==TRUE) print("Computing shifted rising ridge model (SRR) ...")
 		m.SRR <- paste(ifelse(is.cubic,polycubic,poly),
@@ -453,20 +453,20 @@ withCallingHandlers({
 			"a4 := b3-b4+b5",
 			"a5 := b3-b5",
 			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4",
 			"PA1.curv := b3 + b4*p11 + b5*(p11^2)",
 			"PA2.curv := b3 + b4*p21 + b5*(p21^2)",
 			"meaneffect := a1",
 			"C := (b1-b2) / (4*b3)",
 			# eigenvalues
-			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
-			
+
 			add, sep="\n")
 			s.SRR <- sem(m.SRR, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
-	
+
+
 	if (any(models %in% c("SRRR"))) {
 			if (verbose==TRUE) print("Computing rotated and shifted rising ridge model (SRRR), up ...")
 			m.SRRR.up <- paste(paste(ifelse(is.cubic,polycubic,poly), " + start(0.01)*", IV12, " + start(0.01)*", IV22),
@@ -480,7 +480,7 @@ withCallingHandlers({
 				"a4 := b3-b4+b5",
 				"a5 := b3-b5",
 				"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-				"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+				"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4",
 				"PA1.curv := b3 + b4*p11 + b5*(p11^2)",
 				"PA2.curv := b3 + b4*p21 + b5*(p21^2)",
 				"meaneffect := (b2*b4 - 2*b1*b5) / b4",
@@ -488,12 +488,12 @@ withCallingHandlers({
 				"S := (-b4) / (2*b5)",
 				"a4.rescaled := b3/S^2 - b4/S + b5",
 				# eigenvalues
-				"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+				"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 				"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
-		
+
 				add, sep="\n")
-				s.SRRR.up <- sem(m.SRRR.up, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)	
-				
+				s.SRRR.up <- sem(m.SRRR.up, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
+
 			if (verbose==TRUE) print("Computing rotated and shifted rising ridge model (SRRR), down ...")
 			m.SRRR.down <- paste(paste(ifelse(is.cubic,polycubic,poly), " + start(-0.01)*", IV12, " + start(-0.01)*", IV22),
 			#m.SRRR <- paste(paste(ifelse(is.cubic,polycubic,poly), " + start(-0.001)*", IV22),
@@ -507,7 +507,7 @@ withCallingHandlers({
 				"a4 := b3-b4+b5",
 				"a5 := b3-b5",
 				"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-				"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+				"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4",
 				"PA1.curv := b3 + b4*p11 + b5*(p11^2)",
 				"PA2.curv := b3 + b4*p21 + b5*(p21^2)",
 				"meaneffect := (b2*b4 - 2*b1*b5) / b4",
@@ -515,18 +515,18 @@ withCallingHandlers({
 				"S := (-b4) / (2*b5)",
 				"a4.rescaled := b3/S^2 - b4/S + b5",
 				# eigenvalues
-				"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+				"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 				"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
-	
+
 				add, sep="\n")
-				s.SRRR.down <- sem(m.SRRR.down, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)	
-				
+				s.SRRR.down <- sem(m.SRRR.down, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
+
 			if (inspect(s.SRRR.up, "converged") == FALSE & inspect(s.SRRR.down, "converged") == TRUE) {
 				SRRR.rot <- "down"
-			} else 
+			} else
 			if (inspect(s.SRRR.up, "converged") == TRUE & inspect(s.SRRR.down, "converged") == FALSE) {
 				SRRR.rot <- "up"
-			} else 
+			} else
 			if (inspect(s.SRRR.up, "converged") == TRUE & inspect(s.SRRR.down, "converged") == TRUE) {
 				SRRR.rot <- ifelse(fitMeasures(s.SRRR.up, "chisq") > fitMeasures(s.SRRR.down, "chisq"), "down", "up")
 			} else {
@@ -534,15 +534,15 @@ withCallingHandlers({
 			}
 			if (SRRR.rot == "up") {
 				s.SRRR <- s.SRRR.up
-			} else 
+			} else
 			if (SRRR.rot == "down") {
 				s.SRRR <- s.SRRR.down
 			}
 			if (verbose == TRUE) print(paste0("Direction of SRRR curvature: ", SRRR.rot))
-			
+
 	}
-	
-	
+
+
 	if (any(models %in% c("SRSQD"))) {
 		if (verbose==TRUE) print("Computing rotated squared difference model (SRSQD), up ...")
 		m.SRSQD.up <- paste(paste(ifelse(is.cubic,polycubic,poly), " + start(0.001)*", IV22),
@@ -562,17 +562,17 @@ withCallingHandlers({
 			"X0 := (b2*b4 - 2*b1*b5) / (4*b3*b5 - b4^2)",
 			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
 			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
-			"p10 := Y0 - p11*X0",			
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4",
+			"p10 := Y0 - p11*X0",
 			"p20 := Y0 - p21*X0",
 			"PA1.curv := b3 + b4*p11 + b5*(p11^2)",
 			"PA2.curv := b3 + b4*p21 + b5*(p21^2)",
-			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			add, sep="\n")
 			s.SRSQD.up <- sem(m.SRSQD.up, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
-			
-			
+
+
 		if (verbose==TRUE) print("Computing rotated squared difference model (SRSQD), down ...")
 		m.SRSQD.down <- paste(paste(ifelse(is.cubic,polycubic,poly), " + start(-0.001)*", IV22),
 			"b1 == (b2*b4)/(2*b5)",
@@ -592,21 +592,21 @@ withCallingHandlers({
 			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
 			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
 			"p10 := Y0 - p11*X0",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4",
 			"p20 := Y0 - p21*X0",
 			"PA1.curv := b3 + b4*p11 + b5*(p11^2)",
 			"PA2.curv := b3 + b4*p21 + b5*(p21^2)",
-			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			add, sep="\n")
 			s.SRSQD.down <- sem(m.SRSQD.down, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
-	
+
 			if (inspect(s.SRSQD.up, "converged") == FALSE & inspect(s.SRSQD.down, "converged") == TRUE) {
 				SRSQD.rot <- "down"
-			} else 
+			} else
 			if (inspect(s.SRSQD.up, "converged") == TRUE & inspect(s.SRSQD.down, "converged") == FALSE) {
 				SRSQD.rot <- "up"
-			} else 
+			} else
 			if (inspect(s.SRSQD.up, "converged") == TRUE & inspect(s.SRSQD.down, "converged") == TRUE) {
 				SRSQD.rot <- ifelse(fitMeasures(s.SRSQD.up, "chisq") > fitMeasures(s.SRSQD.down, "chisq"), "down", "up")
 			} else {
@@ -614,16 +614,16 @@ withCallingHandlers({
 			}
 			if (SRSQD.rot == "up") {
 				s.SRSQD <- s.SRSQD.up
-			} else 
+			} else
 			if (SRSQD.rot == "down") {
 				s.SRSQD <- s.SRSQD.down
 			}
 			if (verbose == TRUE) print(paste0("Direction of SRSQD curvature: ", SRSQD.rot))
 
-		
+
 	}
-	
-	
+
+
 	if ("full" %in% models) {
 		if (verbose==TRUE) print("Computing polynomial model (full) ...")
 		m.full <-  paste(ifelse(is.cubic,polycubic,poly),
@@ -637,12 +637,12 @@ withCallingHandlers({
 			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
 			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
 			"p10 := Y0 - p11*X0",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4",
 			"p20 := Y0 - p21*X0",
 			"PA1.curv := b3 + b4*p11 + b5*(p11^2)",
 			"PA2.curv := b3 + b4*p21 + b5*(p21^2)",
 			# eigenvalues
-			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			# specific tests for fit pattern
 			"weakcondition    := b3*b5",				# must be > 0
@@ -652,8 +652,8 @@ withCallingHandlers({
 			sep="\n"
 		)
 		s.full <- sem(m.full, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
-	}	
-	
+	}
+
 	if ("weak" %in% models) {
 		if (verbose==TRUE) print("Computing weak fit pattern ...")
 		m.weak <-  paste(ifelse(is.cubic,polycubic,poly),
@@ -667,12 +667,12 @@ withCallingHandlers({
 			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
 			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
 			"p10 := Y0 - p11*X0",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4",
 			"p20 := Y0 - p21*X0",
 			"PA1.curv := b3 + b4*p11 + b5*(p11^2)",
 			"PA2.curv := b3 + b4*p21 + b5*(p21^2)",
 			# eigenvalues
-			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			# constraints for weak pattern
 			"b3*b5 > 0",	# must be > 0
@@ -681,8 +681,8 @@ withCallingHandlers({
 		)
 		s.weak <- sem(m.weak, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
-	
+
+
 	if ("strong" %in% models) {
 		if (verbose==TRUE) print("Computing strong fit pattern ...")
 		m.strong <-  paste(ifelse(is.cubic,polycubic,poly),
@@ -693,11 +693,11 @@ withCallingHandlers({
 			"a4 := b3-b4+b5",
 			"a5 := b3-b5",
 			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4",
 			"PA1.curv := b3 + b4*p11 + b5*(p11^2)",
 			"PA2.curv := b3 + b4*p21 + b5*(p21^2)",
 			# eigenvalues
-			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			# constraints for strong pattern
 			"b3*b5 > 0.000001",			# must be > 0
@@ -708,8 +708,8 @@ withCallingHandlers({
 		)
 		s.strong <- sem(m.strong, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
-	
+
+
 	#m.absdiff.JRE <-  paste(
 	#	paste0(DV, " ~ b1*", IV1, " + b2*", IV2, " + 0*", IV12, " + 0*", IV_IA, " + 0*", IV22, " + 0*W.JRE + w2*W.JRE_", IV1, " + w3*W.JRE_", IV2),
 	#	"b1 == -b2",
@@ -718,15 +718,15 @@ withCallingHandlers({
 	#	add, sep="\n")
 	#s.absdiff.JRE <-  sem(m.absdiff.JRE, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	#summary(s.absdiff.JRE, fit.measures=TRUE)
-	
+
 	# the unconstrained absolute difference model - Edwards (2002) formula
 	#m.absunc.JRE <-  paste(
 	#	paste0(DV, " ~ b1*", IV1, " + b2*", IV2, " + 0*", IV12, " + 0*", IV_IA, " + 0*", IV22, " + w1*W.JRE + w2*W.JRE_", IV1, " + w3*W.JRE_", IV2),
 	#	add, sep="\n")
 	#s.absunc.JRE <-  sem(m.absunc.JRE, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	#summary(s.absunc.JRE, fit.measures=TRUE)
-	
-	
+
+
 	if ("absdiff" %in% models) {
 		if (verbose==TRUE) print("Computing constrained absolute difference model (absdiff) ...")
 		m.absdiff <-  paste(
@@ -736,10 +736,10 @@ withCallingHandlers({
 			"w1 == 0",
 			"w2 == -w3",
 			add, sep="\n")
-			
+
 			s.absdiff <- sem(m.absdiff, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
+
 	if ("absunc" %in% models) {
 		# the unconstrained absolute difference model - new formula
 		if (verbose==TRUE) print("Computing unconstrained absolute difference model (absunc) ...")
@@ -747,13 +747,13 @@ withCallingHandlers({
 			paste0(DV, " ~ b1*", IV1, " + b2*", IV2, " + w1*W + w2*W_", IV1, " + w3*W_", IV2),
 			ifelse(breakline==FALSE, "w1==0", ""),
 			add, sep="\n")
-			
+
 			s.absunc <- sem(m.absunc, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
 
-	
-	
-	
+
+
+
 	## Test all models of third degree
 
 	# Full model of third degree
@@ -771,9 +771,9 @@ withCallingHandlers({
 			add,
 			sep="\n"
 		)
-		s.cubic <- sem(m.cubic, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)		
+		s.cubic <- sem(m.cubic, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
+
 	# "Cubic Difference" models of third degree
 	if ("CA" %in% models) {
 		if (verbose==TRUE) print("Computing cubic asymmetry model (CA) ...")
@@ -797,10 +797,10 @@ withCallingHandlers({
 			add,
 			sep="\n"
 		)
-		s.CA <- sem(m.CA, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)		
+		s.CA <- sem(m.CA, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
-	
-	
+
+
 	if ("CL" %in% models) {
 	  if (verbose==TRUE) print("Computing cubic level model (CL) ...")
 	  m.CL <-  paste(polycubic,
@@ -823,10 +823,10 @@ withCallingHandlers({
        add,
        sep="\n"
 	  )
-	  s.CL <- sem(m.CL, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)		
+	  s.CL <- sem(m.CL, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
 	}
 
-	
+
 	if ("RRCA" %in% models) {
 		if (verbose==TRUE) print("Computing rising ridge cubic asymmetry model (RRCA) ...")
 		m.RRCA <-  paste(polycubic,
@@ -850,10 +850,10 @@ withCallingHandlers({
 			add,
 			sep="\n"
 		)
-		s.RRCA <- sem(m.RRCA, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)		
-	}	
-	
-	
+		s.RRCA <- sem(m.RRCA, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
+	}
+
+
 	if ("RRCL" %in% models) {
 	  if (verbose==TRUE) print("Computing rising ridge cubic level model (RRCL) ...")
 	  m.RRCL <-  paste(polycubic,
@@ -877,10 +877,10 @@ withCallingHandlers({
 	                   add,
 	                   sep="\n"
 	  )
-	  s.RRCL <- sem(m.RRCL, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)		
-	}	
-	
-	
+	  s.RRCL <- sem(m.RRCL, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
+	}
+
+
 	},	  # end of "withCallingHandlers"
 
 
@@ -915,17 +915,17 @@ withCallingHandlers({
 			warning(paste0("There are convergence problems with model ", chisq1[which(chisq1$lag < 0), ".id"], ". Its chi-square value is higher than that of a nested model, which is theoretically not possible. Please inspect the results with care, using the compare()-function"))
 		}
 	}
-	
+
 	chisq2 <- plyr::ldply(list(full=s.full, SRRR=s.SRRR, SRSQD=s.SRSQD, SSQD=s.SSQD, SQD=s.SQD), function(x) {
 		chi <- -1
 		if (!is.null(x)) {
 			if (inspect(x, "converged")==TRUE) chi <-  fitMeasures(x, "chisq")
 		}
 		return(chi)
-		
+
 	})
 	chisq2 <- chisq2[chisq2[, 2]>=0, ]
-	
+
 	if (nrow(chisq1)>1) {
 		chisq2$lag <- c(diff(chisq2[, 2], lag=1), NA)
 		if (any(chisq2$lag < 0, na.rm=TRUE)) {
@@ -933,20 +933,20 @@ withCallingHandlers({
 		}
 	}
 
-	
+
 	# ---------------------------------------------------------------------
 	# Build results object
-	modellist <- list(null=s.NULL, full=s.full, IA=s.IA, diff=s.diff, mean=s.mean, absdiff=s.absdiff, additive=s.additive, SQD=s.SQD, SRRR=s.SRRR, SRR=s.SRR, RR=s.RR, SSQD=s.SSQD, SRSQD=s.SRSQD, absunc=s.absunc, cubic=s.cubic, onlyx=s.onlyx, onlyy=s.onlyy, onlyx2=s.onlyx2, onlyy2=s.onlyy2, weak=s.weak, strong=s.strong, 
+	modellist <- list(null=s.NULL, full=s.full, IA=s.IA, diff=s.diff, mean=s.mean, absdiff=s.absdiff, additive=s.additive, SQD=s.SQD, SRRR=s.SRRR, SRR=s.SRR, RR=s.RR, SSQD=s.SSQD, SRSQD=s.SRSQD, absunc=s.absunc, cubic=s.cubic, onlyx=s.onlyx, onlyy=s.onlyy, onlyx2=s.onlyx2, onlyy2=s.onlyy2, weak=s.weak, strong=s.strong,
 	CA=s.CA, CL=s.CL, RRCA=s.RRCA, RRCL=s.RRCL)
-	
+
 	res <- list(
-		models = modellist, 
-		SRSQD.rot = SRSQD.rot, SRRR.rot = SRRR.rot, LM=summary(lm.full), formula=formula, 
-		data=df, out.rm = out.rm, outliers = which(df$out == TRUE), DV=DV, IV1=IV1, IV2=IV2, IV12=IV12, IV22=IV22, 
-		IV_IA=IV_IA, W_IV1=W_IV1, W_IV2=W_IV2, IV13=IV13, IV_IA2=IV_IA2, IV_IA3=IV_IA3, IV23=IV23, 
-		r.squared = summary(lm.full)$r.squared, 
+		models = modellist,
+		SRSQD.rot = SRSQD.rot, SRRR.rot = SRRR.rot, LM=summary(lm.full), formula=formula,
+		data=df, out.rm = out.rm, outliers = which(df$out == TRUE), DV=DV, IV1=IV1, IV2=IV2, IV12=IV12, IV22=IV22,
+		IV_IA=IV_IA, W_IV1=W_IV1, W_IV2=W_IV2, IV13=IV13, IV_IA2=IV_IA2, IV_IA3=IV_IA3, IV23=IV23,
+		r.squared = summary(lm.full)$r.squared,
 		is.cubic=is.cubic)
-	
+
 	attr(res, "class") <- "RSA"
 	return(res)
 }
